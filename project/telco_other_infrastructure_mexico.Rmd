@@ -1,0 +1,121 @@
+---
+title: Is there a correlation between telecommunications infrastructure development
+  and the development of other type of infrastructure?
+author: "Guillermo Fernández Castellanos"
+date: "NBED DATE"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    theme: cerulean
+---
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(foreign)
+df <- read.dbf("ITER_NALDBF10.dbf")
+
+# Select the columns we are interested in:
+# Name of localities
+# VIVPAR_HAB: Viviendas particulares habitadas
+# VPH_C_SERV: Viviendas particulares habitadas que disponen de luz eléctrica, agua entubada de la red pública y drenaje
+# VPH_TELEF: Viviendas particulares habitadas que disponen de línea telefonica fija
+df <- df[, c("ENTIDAD", "MUN", "NOM_MUN", "NOM_LOC", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
+df$id <-  paste0(df$ENTIDAD, df$MUN)
+
+# We are looking only for total Municipio lines
+df <- df[df$NOM_LOC == "Total del Municipio", ]
+
+# Reorder and eliminate undeeded columns
+df <- df[, c("id", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
+
+# Change types
+head(df, n=20)
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+df$NOM_MUN <- as.character(df$NOM_MUN)
+df$POBTOT <- as.numeric.factor(df$POBTOT)
+df$VIVPAR_HAB <- as.numeric.factor(df$VIVPAR_HAB)
+df$VPH_C_SERV <- as.numeric.factor(df$VPH_C_SERV)
+df$VPH_TELEF <- as.numeric.factor(df$VPH_TELEF)
+head(df, n=20)
+
+# Transform integers to proportions
+df$infr <- df$VPH_C_SERV/df$VIVPAR_HAB
+df$telco <- df$VPH_TELEF/df$VIVPAR_HAB
+
+# Change numeric variables to categorical variables
+df$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.2), 
+    labels=c("very low","low","medium","high","very high"), include.lowest=TRUE)
+table(df$infr)
+df$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.2),
+    labels=c("very low","low","medium","high","very high"), include.lowest=TRUE)
+table(df$telco)
+
+# TMP WORKING
+df2 <- df
+df2$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.1), 
+    labels=c("0-10%","11-20%","21-30%","31-40%","41-50%","51-60%","61-70%","71-80%","81-90%","91-100%"), include.lowest=TRUE)
+table(df2$infr)
+df2$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.1),
+    labels=c("0-10%","11-20%","21-30%","31-40%","41-50%","51-60%","61-70%","71-80%","81-90%","91-100%"), include.lowest=TRUE)
+table(df2$telco)
+
+```
+
+### Introduction:
+Broadband adoption is often considered as a driver for development, both economic and otherwise. Different studies tend to confirm this finding, among many others:
+* Katz, based on a latinamerican region's study, showed in 2009 that an increase of ten points in the level of digitalisation results in an increment of 0.59% of GDP
+* Czernich proposed in 2009 based on a study of OECD countries that an increase of 10% in broadband penetration results in an increment of GDP between 0.9% and 1.5%
+* Koutrompis established in 2009 based on 22 OECD countries that an increase of 1% in broadband penetration resulted in 0.025% growth of the economy
+
+This has resulted in broadband being at the forefront of governments' priorities. While this applies worldwide, it is specially true for Mexico: the recent telecommunication reform has resulted in an independent regulator, a change of the constitution to include broadband development and initiatives and the development of secondary telecom-related laws. A key factor for broadband adoption is availability: if there is no telecommunication infrastructure, there will be no broadband adoption. 
+
+Mexico is a country of inequalities in terms of geography, economy and development. In this context, we want to understand the correlation between telecommunications infrastructure development and the development of other type of infrastructure.
+
+### Data:
+The source for this analysis is the [Mexican 2010 census](http://www.censo2010.org.mx/) made by the National Institute of Statistics and Geography of Mexico, [INEGI](http://www.inegi.org.mx/). The database can be [downloaded from here](http://www3.inegi.org.mx/sistemas/biblioteca/detalle.aspx?c=27623&s=est&upc=702825002065&pf=pob&f=2&cl=0&tg=0).
+
+Despite being called a census, the data  has been gathered through quizzes made to 2.9 million households (the case of the database) selected based on probabilistic criterias, avoiding duplications of households. It is an observational study as the data was obtained without directly interfering with households' activity, and is based on past data.
+
+For localities less than 1100 households all households were censed, while for larger localitices a representative fraction of households only were censed. When only a subset of households are sampled, households are chosen as to be geographically distributed over the given locality (for instance, in terms of blocks for large cities).
+
+The data was then treated and aggregated in localidades (localities), municipios (municipalities composed of several localities) and estados (states) by INEGI. An estado is divided into municipalidades that are composed of one or more localidades.
+
+The present study will concentrate on potential correlation between two variables:
+* Categorical variable: Proportion of particular occupied households with electric light, water through pipes and sewers
+* Categorical variable: Proportion of particular occupied households that have fixed telephony line (Viviendas particulares habitadas que disponen de línea telefonica fija)
+
+Both variables can take the values of *very low* (0-19%),*low* (20-39%),*medium* (40-59%),*high* (60-79%),*very high*(80-100%).
+
+One significant source of bias comes from non-response, as many smaller localities where not sampled for variables other than population, and with good reason: there are 198500 localities, of which 85000 have 10 or less inhabitants, and 142100 have 100 or less inhabitants. Another source of bias is the fact that non-inhabited households were not accounted within the survey. To minimize the impact of biases it was decided to analize the data at municipio level, as the data will be more aggregated, thus reducing outliers.
+
+This study is generalizable to municipios in Mexico - as it is self-contained (we already have present data for all municipios) it should be applied as a forecasting and policy making tool, supporting (or not) the relevance of developping both types of infrastructure. While due to the fact that it is not an experiment with random assignements this data can not be used to establish casual links - and thus causation between both variables - it can show correlation between both variables.
+
+### Exploratory data analysis:
+There are `r dim(df)[1]` municipios in the database, covering the whole of Mexico. As the table below shows, deployment of basic infrastructure is a right skewed 
+ 
+```{r}
+table(df$infr)
+table(df$telco)
+```
+
+```{r}
+library(vcd)
+mosaic(infr ~ telco,
+       data = df,
+       labeling_args = list(rot_labels = c(left = 0),
+                            offset_varnames = c(left = 2.5, top = 1),
+                            offset_labels = c(left = 1.2, top = 0.5),
+                            set_varnames=list(infr = '% of HH with basic infrastructure',
+                                              telco = '% of HH with fixed telephony line')),
+       margins = c(left = 4))
+```
+
+Insert exploratory data analysis here...
+
+### Inference:
+
+Insert inference section here...
+
+### Conclusion:
+
+Insert conclusion here...
