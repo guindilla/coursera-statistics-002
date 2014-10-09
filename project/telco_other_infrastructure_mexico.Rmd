@@ -29,36 +29,25 @@ df <- df[df$NOM_LOC == "Total del Municipio", ]
 df <- df[, c("id", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
 
 # Change types
-head(df, n=20)
 as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
 df$NOM_MUN <- as.character(df$NOM_MUN)
 df$POBTOT <- as.numeric.factor(df$POBTOT)
 df$VIVPAR_HAB <- as.numeric.factor(df$VIVPAR_HAB)
 df$VPH_C_SERV <- as.numeric.factor(df$VPH_C_SERV)
 df$VPH_TELEF <- as.numeric.factor(df$VPH_TELEF)
-head(df, n=20)
 
 # Transform integers to proportions
 df$infr <- df$VPH_C_SERV/df$VIVPAR_HAB
 df$telco <- df$VPH_TELEF/df$VIVPAR_HAB
 
 # Change numeric variables to categorical variables
-df$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.2), 
-    labels=c("very low","low","medium","high","very high"), include.lowest=TRUE)
-table(df$infr)
-df$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.2),
-    labels=c("very low","low","medium","high","very high"), include.lowest=TRUE)
-table(df$telco)
-
-# TMP WORKING
-df2 <- df
-df2$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.1), 
+df$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.1), 
     labels=c("0-10%","11-20%","21-30%","31-40%","41-50%","51-60%","61-70%","71-80%","81-90%","91-100%"), include.lowest=TRUE)
-table(df2$infr)
-df2$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.1),
+df$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.1),
     labels=c("0-10%","11-20%","21-30%","31-40%","41-50%","51-60%","61-70%","71-80%","81-90%","91-100%"), include.lowest=TRUE)
-table(df2$telco)
 
+####### NBED BEFORE DELIVERING THE EXERCISE, MAKE SURE TO LEAVE ONLY THE COLUMNS WE WANT TO KEEP
+df <- df[, c("id", "infr", "telco", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
 ```
 
 ### Introduction:
@@ -84,7 +73,7 @@ The present study will concentrate on potential correlation between two variable
 * Categorical variable: Proportion of particular occupied households with electric light, water through pipes and sewers
 * Categorical variable: Proportion of particular occupied households that have fixed telephony line (Viviendas particulares habitadas que disponen de línea telefonica fija)
 
-Both variables can take the values of *very low* (0-19%),*low* (20-39%),*medium* (40-59%),*high* (60-79%),*very high*(80-100%).
+Both variables can take the values:*0-10%*, *11-20%*, *21-30%*, *31-40%*, *41-50%*, *51-60%*, *61-70%*, *71-80%*, *81-90%* OR *91-100%*.
 
 One significant source of bias comes from non-response, as many smaller localities where not sampled for variables other than population, and with good reason: there are 198500 localities, of which 85000 have 10 or less inhabitants, and 142100 have 100 or less inhabitants. Another source of bias is the fact that non-inhabited households were not accounted within the survey. To minimize the impact of biases it was decided to analize the data at municipio level, as the data will be more aggregated, thus reducing outliers.
 
@@ -98,13 +87,13 @@ table(df$infr)
 table(df$telco)
 ```
 
-```{r}
+```{r , fig.width=8, fig.height=8}
 library(vcd)
 mosaic(infr ~ telco,
        data = df,
-       labeling_args = list(rot_labels = c(left = 0),
-                            offset_varnames = c(left = 2.5, top = 1),
-                            offset_labels = c(left = 1.2, top = 0.5),
+       labeling_args = list(rot_labels = c(left = 0, top = 90),
+                            offset_varnames = c(left = 2.7, top = 2.7),
+                            offset_labels = c(left = 1.2, top = 1.2),
                             set_varnames=list(infr = '% of HH with basic infrastructure',
                                               telco = '% of HH with fixed telephony line')),
        margins = c(left = 4))
