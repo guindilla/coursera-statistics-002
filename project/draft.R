@@ -235,28 +235,50 @@ summary(dft5)
 
 str(df)
 library(ggplot2)
-graph1 <- ggplot(data = df, aes(pc)) +
+graph1 <- ggplot(data = df, aes(infr)) +
     geom_bar() +
     labs(x = '% of HH with a computer',
          y = 'Number of municipalidades')
-graph2 <- ggplot(data = df, aes(broadband)) +
+graph2 <- ggplot(data = df, aes(telco)) +
     geom_bar() +
     labs(x = '% of HH with Internet access',
          y = 'Number of municipalidades')
 library(gridExtra)
-grid.newpage(main = 'Histogram of basic and telco infrastructure variables') # Open a new page on grid device
+library(vcd)
+grid.newpage()
 pushViewport(viewport(layout = grid.layout(2, 3)))
 print(graph1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
 print(graph2, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)) 
 pushViewport(viewport(layout.pos.col = 2:3))
-library(vcd)
-mosaic(pc ~ broadband,
+mosaic(infr ~ telco,
        data = df,
        newpage=FALSE,
        labeling_args = list(rot_labels = c(left = 0, top = 90),
                             offset_varnames = c(left = 2.7, top = 2.7),
                             offset_labels = c(left = 1.2, top = 1.2),
-                            set_varnames=list(pc = '% of HH with a computer',
-                                              broadband = '% of HH with Internet access')),
+                            set_varnames=list(infr = '% of HH with a computer',
+                                              telco = '% of HH with Internet access')),
        margins = c(left = 4))
 popViewport()
+
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(1, 5)))
+graph1 <- ggplot(data = table.df, aes(x=prob, y=value, fill=variable)) +
+    geom_bar(stat="identity", position="dodge") +
+    scale_y_continuous(labels = percent, limits=c(0, 0.3)) +
+    labs(x = '',
+         y = '% of municipalidades',
+         fill = '% of households') +
+    ggtitle('Proportion of households with basic infrastructure and fixed line') +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+print(graph1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1:3))
+pushViewport(viewport(layout.pos.col = 4:5))
+mosaic(infr ~ telco,
+       data = df,
+       newpage=FALSE,
+       labeling_args = list(rot_labels = c(left = 0, top = 90),
+                            offset_varnames = c(left = 2.7, top = 2.7),
+                            offset_labels = c(left = 1.2, top = 1.2),
+                            set_varnames=list(infr = '% of HH with basic infrastructure',
+                                              telco = '% of HH with fixed telephony line')),
+       margins = c(left = 4, top = 6))

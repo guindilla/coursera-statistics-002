@@ -89,51 +89,66 @@ row.names(df)<-NULL
 This study is generalizable to municipios in Mexico - as it is self-contained (we already have present data for all municipios) it should be applied as a forecasting and policy making tool, supporting (or not) the relevance of developping both types of infrastructure. While due to the fact that it is not an experiment with random assignements this data can not be used to establish casual links - and thus causation between both variables - it can show correlation between both variables.
 
 ### Exploratory data analysis:
-There are `r dim(df)[1]` municipios in the database, covering the whole of Mexico. As the table below shows, both variables' probability distribution functions are unimodal and significantly skewed, left skewed for basic infrastructure and right skewed for telecommunications infrastructure.
- 
-```{r , echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.height=3, fig.width=10}
-library(ggplot2)
-library(scales)
-graph1 <- ggplot(data = df, aes(infr)) +
-    geom_bar(aes(y = (..count..)/sum(..count..))) + 
-    scale_y_continuous(labels = percent, limits=c(0, 0.3)) +
-    scale_x_discrete(limits=percent.limits) +
-    labs(x = '% of HH with basic infrastructure',
-         y = '% of municipalidades') +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-graph2 <- ggplot(data = df, aes(telco)) +
-    geom_bar(aes(y = (..count..)/sum(..count..))) + 
-    scale_y_continuous(labels = percent, limits=c(0, 0.3)) +
-    scale_x_discrete(limits=percent.limits) +
-    labs(x = '% of HH with fixed telephony line',
-         y = '% of municipalidades') +
-    theme(axis.text.x = element_text(angle = 90, hjust = 1))
-library(gridExtra)
-grid.arrange(graph1, graph2, nrow=1)
+There are `r dim(df)[1]` municipios in the database, covering the whole of Mexico. Shown below is the number o
+```{r summaryTable, echo=FALSE, results='asis'}
+table.df <- data.frame(as.data.frame(table(df$infr))[2],
+                       as.data.frame(table(df$telco))[2],
+                       row.names = names(table(df$telco)))
+names(table.df) <- c("Basic infrastructure", "Fixed line")
+library(knitr)
+kable(as.data.frame(t(table.df)), format="pandoc")
 ```
 
-While the concept of mean and median does not make much sense in categorical variables, as in this case they are ordered it is possible to affirm based on their cumulative probability distributions above that the median would be located in the *61-70%* category for basic infrastructure adoption and *21-30%* category for fixed line adoption.
+As the figure below left shows, both variables' probability distribution functions are unimodal and significantly skewed, left skewed for basic infrastructure and right skewed for telecommunications infrastructure. A preliminar analysis indicate a certain relationship between both variables: while there is no apparent linearity it appears clearly in the contingency table (presented graphically below right) that higher proportions of fixed line penetration among households are far more likely in municipios with a high proportion of households with basic infrastructure needs covered. Nonetheless, having a high penetration of basic infrastructure in a municipio does not insure a high adoption of fixed lines among households - fixed infrastructure has been traditionally installed after deployment of basic infrastructures
+ 
+```{r , echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.height=3, fig.width=9}
+table.df <- data.frame(names(table(df$telco)),
+                       as.data.frame(table(df$infr))[2],
+                       as.data.frame(table(df$telco))[2])
+names(table.df) <- c("prob", "Basic infrastructure", "Fixed line")
+table.df["Basic infrastructure"] <-
+    table.df["Basic infrastructure"] / sum(table.df["Basic infrastructure"])
+table.df["Fixed line"] <- table.df["Fixed line"] / sum(table.df["Fixed line"])
 
-A preliminar analysis indicate a certain relationship between both variables: while there is no apparent linearity it appears clearly in the contingency table (presented graphically below) that higher proportions of fixed line penetration among households are far more likely in municipios with a high proportion of households with basic infrastructure needs covered. Nonetheless, having a high penetration of basic infrastructure in a municipio does not insure a high adoption of fixed lines among households - 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-# , fig.width=4, fig.height=4
+library(reshape2)
+table.df <- melt(table.df)
+
+library(gridExtra)
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(1, 2)))
+library(ggplot2)
+library(scales)
+graph1 <- ggplot(data = table.df, aes(x=prob, y=value, fill=variable)) +
+    geom_bar(stat="identity", position="dodge") +
+    scale_y_continuous(labels = percent, limits=c(0, 0.3)) +
+    labs(x = '',
+         y = '% of municipalidades',
+         fill = '% of households') +
+    ggtitle('Proportion of households with\nbasic infrastructure and fixed line') +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1),
+          legend.position="bottom")
+print(graph1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+pushViewport(viewport(layout.pos.col = 2))
 library(vcd)
 mosaic(infr ~ telco,
        data = df,
+       newpage=FALSE,
        labeling_args = list(rot_labels = c(left = 0, top = 90),
                             offset_varnames = c(left = 2.7, top = 2.7),
                             offset_labels = c(left = 1.2, top = 1.2),
                             set_varnames=list(infr = '% of HH with basic infrastructure',
-                                              telco = '% of HH with fixed telephony line')),
+                                              telco = '% of HH with fixed line')),
        margins = c(left = 4, top = 6))
 ```
+
+While the concept of mean and median does not make much sense in categorical variables, as in this case they are ordered it is possible to affirm based on their cumulative probability distributions above that the median would be located in the *61-70%* category for basic infrastructure adoption and *21-30%* category for fixed line adoption.
 
 ### Inference:
 
 Insert inference section here...
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 library("MASS")
-fm <- loglm(~ infr + telco, xtabs(~ infr + telco, df))
+fm <- loglm(~ infr + telco, xtabs(~ infr + telco, df))  # Fit Log-Linear Models by Iterative Proportional Scaling
 fm
 str(fm)
 ```
