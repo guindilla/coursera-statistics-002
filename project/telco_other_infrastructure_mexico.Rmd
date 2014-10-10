@@ -1,13 +1,13 @@
 ---
-title: Is there a correlation between telecommunications infrastructure development
-  and the development of other type of infrastructure?
+title: Is there a correlation between fixed telecommunications infrastructure development
+  and the development of basic infrastructure?
 author: "Guillermo Fernández Castellanos"
 date: "NBED DATE"
 output:
-  word_document: default
-  pdf_document: default
   html_document:
     theme: cerulean
+  pdf_document: default
+  word_document: default
 ---
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
@@ -52,13 +52,13 @@ df <- df[, c("id", "infr", "telco", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SE
 
 ### Introduction:
 Broadband adoption is often considered as a driver for development, both economic and otherwise. Different studies tend to confirm this finding, among many others:
-* Katz, based on a latinamerican region's study, showed in 2009 that an increase of ten points in the level of digitalisation results in an increment of 0.59% of GDP
-* Czernich proposed in 2009 based on a study of OECD countries that an increase of 10% in broadband penetration results in an increment of GDP between 0.9% and 1.5%
-* Koutrompis established in 2009 based on 22 OECD countries that an increase of 1% in broadband penetration resulted in 0.025% growth of the economy
+- Katz, based on a latinamerican region's study, showed in 2009 that an increase of ten points in the level of digitalisation results in an increment of 0.59% of GDP
+- Czernich proposed in 2009 based on a study of OECD countries that an increase of 10% in broadband penetration results in an increment of GDP between 0.9% and 1.5%
+- Koutrompis established in 2009 based on 22 OECD countries that an increase of 1% in broadband penetration resulted in 0.025% growth of the economy
 
-This has resulted in broadband being at the forefront of governments' priorities. While this applies worldwide, it is specially true for Mexico: the recent telecommunication reform has resulted in an independent regulator, a change of the constitution to include broadband development and initiatives and the development of secondary telecom-related laws. A key factor for broadband adoption is availability: if there is no telecommunication infrastructure, there will be no broadband adoption. 
+This has resulted in broadband being at the forefront of governments' priorities. While this applies worldwide, it is specially true for Mexico: the recent telecommunication reform has resulted in an independent regulator, a change of the constitution to include broadband development and initiatives and the development of secondary telecom-related laws. A key factor for broadband adoption is availability: if there is no telecommunication infrastructure, there will be no broadband adoption.
 
-Mexico is a country of inequalities in terms of geography, economy and development. In this context, we want to understand the correlation between telecommunications infrastructure development and the development of other type of infrastructure.
+Mexico is a country of inequalities in terms of geography, economy and development, and too often households lack basic infrastructure such as electric light, water through pipes and sewers, let alone telecommunications infrastructure. In this context, we want to understand the correlation between telecommunications infrastructure development (and more specifically fixed infrastructure) and the development of basic infrastructure, and potential sinergies that might exist between the deployment of both.
 
 ### Data:
 The source for this analysis is the [Mexican 2010 census](http://www.censo2010.org.mx/) made by the National Institute of Statistics and Geography of Mexico, [INEGI](http://www.inegi.org.mx/). The database can be [downloaded from here](http://www3.inegi.org.mx/sistemas/biblioteca/detalle.aspx?c=27623&s=est&upc=702825002065&pf=pob&f=2&cl=0&tg=0).
@@ -70,10 +70,15 @@ For localities less than 1100 households all households were censed, while for l
 The data was then treated and aggregated in localidades (localities), municipios (municipalities composed of several localities) and estados (states) by INEGI. An estado is divided into municipalidades that are composed of one or more localidades.
 
 The present study will concentrate on potential correlation between two variables:
-* Categorical variable: Proportion of particular occupied households with electric light, water through pipes and sewers
-* Categorical variable: Proportion of particular occupied households that have fixed telephony line (Viviendas particulares habitadas que disponen de línea telefonica fija)
+- Categorical variable: Proportion of particular occupied households with electric light, water through pipes and sewers
+- Categorical variable: Proportion of particular occupied households that have fixed telephony line (Viviendas particulares habitadas que disponen de línea telefonica fija)
 
 Both variables can take the values:*0-10%*, *11-20%*, *21-30%*, *31-40%*, *41-50%*, *51-60%*, *61-70%*, *71-80%*, *81-90%* OR *91-100%*.
+
+The proportion of households that have fixed telephony line are used here as a proxy for telecommunication infrastructure deployment. The proxy suffers from known issues:
+- television, and not voice, is the preferred service among poor households - which are more likely to lack basic infrastructure
+- the variable does not take into account households covered by telecommunication infrastructure but where no service is provided
+Nonetheless, it still remain the best proxy in view of the reticence of operators to make public their coverage information.
 
 One significant source of bias comes from non-response, as many smaller localities where not sampled for variables other than population, and with good reason: there are 198500 localities, of which 85000 have 10 or less inhabitants, and 142100 have 100 or less inhabitants. Another source of bias is the fact that non-inhabited households were not accounted within the survey. To minimize the impact of biases it was decided to analize the data at municipio level, as the data will be more aggregated, thus reducing outliers.
 
@@ -82,21 +87,33 @@ This study is generalizable to municipios in Mexico - as it is self-contained (w
 ### Exploratory data analysis:
 There are `r dim(df)[1]` municipios in the database, covering the whole of Mexico. As the table below shows, deployment of basic infrastructure is a right skewed 
  
-```{r}
-table(df$infr)
-table(df$telco)
-```
-
 ```{r , fig.width=8, fig.height=8}
+library(ggplot2)
+graph1 <- ggplot(data = df, aes(pc)) +
+    geom_bar() +
+    labs(x = '% of HH with a computer',
+         y = 'Number of municipalidades')
+graph2 <- ggplot(data = df, aes(broadband)) +
+    geom_bar() +
+    labs(x = '% of HH with Internet access',
+         y = 'Number of municipalidades')
+library(gridExtra)
+grid.newpage(main = 'Histogram of basic and telco infrastructure variables') # Open a new page on grid device
+pushViewport(viewport(layout = grid.layout(2, 3)))
+print(graph1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(graph2, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)) 
+pushViewport(viewport(layout.pos.col = 2:3))
 library(vcd)
-mosaic(infr ~ telco,
+mosaic(pc ~ broadband,
        data = df,
+       newpage=FALSE,
        labeling_args = list(rot_labels = c(left = 0, top = 90),
                             offset_varnames = c(left = 2.7, top = 2.7),
                             offset_labels = c(left = 1.2, top = 1.2),
-                            set_varnames=list(infr = '% of HH with basic infrastructure',
-                                              telco = '% of HH with fixed telephony line')),
+                            set_varnames=list(pc = '% of HH with a computer',
+                                              broadband = '% of HH with Internet access')),
        margins = c(left = 4))
+popViewport()
 ```
 
 Insert exploratory data analysis here...

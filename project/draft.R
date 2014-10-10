@@ -218,3 +218,45 @@ dft5$VPH_TELEF <- cut(dft4$VPH_TELEF, breaks=c(quantile(dft4$VPH_TELEF, probs = 
                       labels=c("very low","low","medium","high"), include.lowest=TRUE)
 
 summary(dft5)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+str(df)
+library(ggplot2)
+graph1 <- ggplot(data = df, aes(pc)) +
+    geom_bar() +
+    labs(x = '% of HH with a computer',
+         y = 'Number of municipalidades')
+graph2 <- ggplot(data = df, aes(broadband)) +
+    geom_bar() +
+    labs(x = '% of HH with Internet access',
+         y = 'Number of municipalidades')
+library(gridExtra)
+grid.newpage(main = 'Histogram of basic and telco infrastructure variables') # Open a new page on grid device
+pushViewport(viewport(layout = grid.layout(2, 3)))
+print(graph1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+print(graph2, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)) 
+pushViewport(viewport(layout.pos.col = 2:3))
+library(vcd)
+mosaic(pc ~ broadband,
+       data = df,
+       newpage=FALSE,
+       labeling_args = list(rot_labels = c(left = 0, top = 90),
+                            offset_varnames = c(left = 2.7, top = 2.7),
+                            offset_labels = c(left = 1.2, top = 1.2),
+                            set_varnames=list(pc = '% of HH with a computer',
+                                              broadband = '% of HH with Internet access')),
+       margins = c(left = 4))
+popViewport()
