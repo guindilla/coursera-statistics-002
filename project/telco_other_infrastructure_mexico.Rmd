@@ -1,6 +1,6 @@
 ---
-title: Is there a correlation between fixed telecommunications infrastructure development
-  and the development of basic infrastructure?
+title: Correlation between fixed telecommunications infrastructure and
+  basic infrastructure development
 author: "Guillermo Fernández Castellanos"
 date: "NBED DATE"
 output:
@@ -10,51 +10,12 @@ output:
   word_document: default
 ---
 
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-library(foreign)
-df <- read.dbf("ITER_NALDBF10.dbf")
-
-# Select the columns we are interested in:
-# Name of localities
-# VIVPAR_HAB: Viviendas particulares habitadas
-# VPH_C_SERV: Viviendas particulares habitadas que disponen de luz eléctrica, agua entubada de la red pública y drenaje
-# VPH_TELEF: Viviendas particulares habitadas que disponen de línea telefonica fija
-df <- df[, c("ENTIDAD", "MUN", "NOM_MUN", "NOM_LOC", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
-df$id <-  paste0(df$ENTIDAD, df$MUN)
-
-# We are looking only for total Municipio lines
-df <- df[df$NOM_LOC == "Total del Municipio", ]
-
-# Reorder and eliminate undeeded columns
-df <- df[, c("id", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
-
-# Change types
-as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
-df$NOM_MUN <- as.character(df$NOM_MUN)
-df$POBTOT <- as.numeric.factor(df$POBTOT)
-df$VIVPAR_HAB <- as.numeric.factor(df$VIVPAR_HAB)
-df$VPH_C_SERV <- as.numeric.factor(df$VPH_C_SERV)
-df$VPH_TELEF <- as.numeric.factor(df$VPH_TELEF)
-
-# Transform integers to proportions
-df$infr <- df$VPH_C_SERV/df$VIVPAR_HAB
-df$telco <- df$VPH_TELEF/df$VIVPAR_HAB
-
-# Change numeric variables to categorical variables
-df$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.1), 
-    labels=c("0-10%","11-20%","21-30%","31-40%","41-50%","51-60%","61-70%","71-80%","81-90%","91-100%"), include.lowest=TRUE)
-df$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.1),
-    labels=c("0-10%","11-20%","21-30%","31-40%","41-50%","51-60%","61-70%","71-80%","81-90%","91-100%"), include.lowest=TRUE)
-
-####### NBED BEFORE DELIVERING THE EXERCISE, MAKE SURE TO LEAVE ONLY THE COLUMNS WE WANT TO KEEP
-df <- df[, c("id", "infr", "telco", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
-```
-
 ### Introduction:
 Broadband adoption is often considered as a driver for development, both economic and otherwise. Different studies tend to confirm this finding, among many others:
-- Katz, based on a latinamerican region's study, showed in 2009 that an increase of ten points in the level of digitalisation results in an increment of 0.59% of GDP
-- Czernich proposed in 2009 based on a study of OECD countries that an increase of 10% in broadband penetration results in an increment of GDP between 0.9% and 1.5%
-- Koutrompis established in 2009 based on 22 OECD countries that an increase of 1% in broadband penetration resulted in 0.025% growth of the economy
+
+* Katz, based on a latinamerican region's study, showed in 2009 that an increase of ten points in the level of digitalisation results in an increment of 0.59% of GDP
+* Czernich proposed in 2009 based on a study of OECD countries that an increase of 10% in broadband penetration results in an increment of GDP between 0.9% and 1.5%
+* Koutrompis established in 2009 based on 22 OECD countries that an increase of 1% in broadband penetration resulted in 0.025% growth of the economy
 
 This has resulted in broadband being at the forefront of governments' priorities. While this applies worldwide, it is specially true for Mexico: the recent telecommunication reform has resulted in an independent regulator, a change of the constitution to include broadband development and initiatives and the development of secondary telecom-related laws. A key factor for broadband adoption is availability: if there is no telecommunication infrastructure, there will be no broadband adoption.
 
@@ -69,59 +30,161 @@ For localities less than 1100 households all households were censed, while for l
 
 The data was then treated and aggregated in localidades (localities), municipios (municipalities composed of several localities) and estados (states) by INEGI. An estado is divided into municipalidades that are composed of one or more localidades.
 
+One significant source of bias comes from non-response, as many smaller localities where not sampled for variables other than population, and with good reason: there are 198500 localities, of which 85000 have 10 or less inhabitants, and 142100 have 100 or less inhabitants. Another source of bias is the fact that non-inhabited households were not accounted within the survey. To minimize the impact of biases it was decided to analize the data at municipio level, as the data will be more aggregated, thus reducing outliers.
+
 The present study will concentrate on potential correlation between two variables:
-- Categorical variable: Proportion of particular occupied households with electric light, water through pipes and sewers
-- Categorical variable: Proportion of particular occupied households that have fixed telephony line (Viviendas particulares habitadas que disponen de línea telefonica fija)
+
+* Ordered categorical variable: Proportion of particular occupied households with electric light, water through pipes and sewers
+* Ordered categorical variable: Proportion of particular occupied households that have fixed telephony line (Viviendas particulares habitadas que disponen de línea telefonica fija)
 
 Both variables can take the values:*0-10%*, *11-20%*, *21-30%*, *31-40%*, *41-50%*, *51-60%*, *61-70%*, *71-80%*, *81-90%* OR *91-100%*.
 
 The proportion of households that have fixed telephony line are used here as a proxy for telecommunication infrastructure deployment. The proxy suffers from known issues:
-- television, and not voice, is the preferred service among poor households - which are more likely to lack basic infrastructure
-- the variable does not take into account households covered by telecommunication infrastructure but where no service is provided
-Nonetheless, it still remain the best proxy in view of the reticence of operators to make public their coverage information.
 
-One significant source of bias comes from non-response, as many smaller localities where not sampled for variables other than population, and with good reason: there are 198500 localities, of which 85000 have 10 or less inhabitants, and 142100 have 100 or less inhabitants. Another source of bias is the fact that non-inhabited households were not accounted within the survey. To minimize the impact of biases it was decided to analize the data at municipio level, as the data will be more aggregated, thus reducing outliers.
+* television, and not voice, is the preferred service among poor households - which are more likely to lack basic infrastructure
+* the variable does not take into account households covered by telecommunication infrastructure but where no service is provided
+
+Nonetheless, fixed line adoption remains the best proxy in view of the reticence of operators to publicly share their coverage information.
+
+Based on those decisions, we prepare the data to respond to our requirements -- see Annex 1 for further details.
+```{r cleanData, echo=FALSE, message=FALSE, warning=FALSE, cache=TRUE}
+library(foreign)
+df <- read.dbf("ITER_NALDBF10.dbf")
+
+# We are looking only for total Municipio lines
+df <- df[df$NOM_LOC == "Total del Municipio", ]
+
+# Change factor types to appropiate types (character or numeric)
+##### NBED REMOVE THOSE FACTORS WE DO NOT USE AT THE END
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+df$NOM_MUN <- as.character(df$NOM_MUN)
+df$POBTOT <- as.numeric.factor(df$POBTOT)
+df$VIVPAR_HAB <- as.numeric.factor(df$VIVPAR_HAB)
+df$VPH_C_SERV <- as.numeric.factor(df$VPH_C_SERV)
+df$VPH_TELEF <- as.numeric.factor(df$VPH_TELEF)
+
+# Transform integers to proportions
+df$infr <- df$VPH_C_SERV/df$VIVPAR_HAB
+df$telco <- df$VPH_TELEF/df$VIVPAR_HAB
+
+# Change numeric variables to categorical variables
+percent.limits <- c("0-10%", "11-20%", "21-30%", "31-40%", "41-50%",
+                    "51-60%", "61-70%", "71-80%", "81-90%", "91-100%")
+df$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.1), 
+    labels=percent.limits, include.lowest=TRUE)
+df$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.1),
+    labels=percent.limits, include.lowest=TRUE)
+
+# Add an id to each municipio based on INEGI codes
+df$id <-  paste0(df$ENTIDAD, df$MUN)
+####### NBED BEFORE DELIVERING THE EXERCISE, MAKE SURE TO LEAVE ONLY THE COLUMNS WE WANT TO KEEP
+# Reorder and eliminate undeeded columns
+df <- df[, c("id", "infr", "telco", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
+
+# Remove row names
+row.names(df)<-NULL
+```
+
 
 This study is generalizable to municipios in Mexico - as it is self-contained (we already have present data for all municipios) it should be applied as a forecasting and policy making tool, supporting (or not) the relevance of developping both types of infrastructure. While due to the fact that it is not an experiment with random assignements this data can not be used to establish casual links - and thus causation between both variables - it can show correlation between both variables.
 
 ### Exploratory data analysis:
-There are `r dim(df)[1]` municipios in the database, covering the whole of Mexico. As the table below shows, deployment of basic infrastructure is a right skewed 
+There are `r dim(df)[1]` municipios in the database, covering the whole of Mexico. As the table below shows, both variables' probability distribution functions are unimodal and significantly skewed, left skewed for basic infrastructure and right skewed for telecommunications infrastructure.
  
-```{r , fig.width=8, fig.height=8}
+```{r , echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.height=3, fig.width=10}
 library(ggplot2)
-graph1 <- ggplot(data = df, aes(pc)) +
-    geom_bar() +
-    labs(x = '% of HH with a computer',
-         y = 'Number of municipalidades')
-graph2 <- ggplot(data = df, aes(broadband)) +
-    geom_bar() +
-    labs(x = '% of HH with Internet access',
-         y = 'Number of municipalidades')
+library(scales)
+graph1 <- ggplot(data = df, aes(infr)) +
+    geom_bar(aes(y = (..count..)/sum(..count..))) + 
+    scale_y_continuous(labels = percent, limits=c(0, 0.3)) +
+    scale_x_discrete(limits=percent.limits) +
+    labs(x = '% of HH with basic infrastructure',
+         y = '% of municipalidades') +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+graph2 <- ggplot(data = df, aes(telco)) +
+    geom_bar(aes(y = (..count..)/sum(..count..))) + 
+    scale_y_continuous(labels = percent, limits=c(0, 0.3)) +
+    scale_x_discrete(limits=percent.limits) +
+    labs(x = '% of HH with fixed telephony line',
+         y = '% of municipalidades') +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
 library(gridExtra)
-grid.newpage(main = 'Histogram of basic and telco infrastructure variables') # Open a new page on grid device
-pushViewport(viewport(layout = grid.layout(2, 3)))
-print(graph1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
-print(graph2, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)) 
-pushViewport(viewport(layout.pos.col = 2:3))
+grid.arrange(graph1, graph2, nrow=1)
+```
+
+While the concept of mean and median does not make much sense in categorical variables, as in this case they are ordered it is possible to affirm based on their cumulative probability distributions above that the median would be located in the *61-70%* category for basic infrastructure adoption and *21-30%* category for fixed line adoption.
+
+A preliminar analysis indicate a certain relationship between both variables: while there is no apparent linearity it appears clearly in the contingency table (presented graphically below) that higher proportions of fixed line penetration among households are far more likely in municipios with a high proportion of households with basic infrastructure needs covered. Nonetheless, having a high penetration of basic infrastructure in a municipio does not insure a high adoption of fixed lines among households - 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# , fig.width=4, fig.height=4
 library(vcd)
-mosaic(pc ~ broadband,
+mosaic(infr ~ telco,
        data = df,
-       newpage=FALSE,
        labeling_args = list(rot_labels = c(left = 0, top = 90),
                             offset_varnames = c(left = 2.7, top = 2.7),
                             offset_labels = c(left = 1.2, top = 1.2),
-                            set_varnames=list(pc = '% of HH with a computer',
-                                              broadband = '% of HH with Internet access')),
-       margins = c(left = 4))
-popViewport()
+                            set_varnames=list(infr = '% of HH with basic infrastructure',
+                                              telco = '% of HH with fixed telephony line')),
+       margins = c(left = 4, top = 6))
 ```
-
-Insert exploratory data analysis here...
 
 ### Inference:
 
 Insert inference section here...
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library("MASS")
+fm <- loglm(~ infr + telco, xtabs(~ infr + telco, df))
+fm
+str(fm)
+```
 
 ### Conclusion:
 
 Insert conclusion here...
+
+Discuss that ideally we would have to do a survey on fixed infrastructure deployment, explain how to do it, how the sample size should be and the fact that bein only 2000 and something municipalities it would be far cheaper to do it than for localidades.
+
+### Appendix 1: Overview of the database
+Find hereafter the commands executed to adapt the database to the study needs:
+```{r cleanDataCommands, eval=FALSE}
+################################################################################
+## NBED REVIEW AT END OF PROJECT
+################################################################################
+
+library(foreign)
+df <- read.dbf("ITER_NALDBF10.dbf")
+
+# We are looking only for total Municipio lines
+df <- df[df$NOM_LOC == "Total del Municipio", ]
+
+# Change factor types to appropiate types
+as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+df$VIVPAR_HAB <- as.numeric.factor(df$VIVPAR_HAB)
+df$VPH_C_SERV <- as.numeric.factor(df$VPH_C_SERV)
+df$VPH_TELEF <- as.numeric.factor(df$VPH_TELEF)
+
+# Transform integers to proportions
+df$infr <- df$VPH_C_SERV/df$VIVPAR_HAB
+df$telco <- df$VPH_TELEF/df$VIVPAR_HAB
+
+# Change numeric variables to categorical variables
+percent.limits <- c("0-10%", "11-20%", "21-30%", "31-40%", "41-50%",
+                    "51-60%", "61-70%", "71-80%", "81-90%", "91-100%")
+df$infr <- cut(df$infr, breaks=seq(0, 1, by = 0.1), 
+    labels=percent.limits, include.lowest=TRUE)
+df$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.1),
+    labels=percent.limits, include.lowest=TRUE)
+
+# Add an id to each municipio based on INEGI codes
+df$id <-  paste0(df$ENTIDAD, df$MUN)
+# Reorder and eliminate undeeded columns
+df <- df[, c("id", "infr", "telco")]
+
+# Remove row names
+row.names(df)<-NULL
+```
+
+This results in the following database (only `r nb.rows <- 20; nb.rows` first rows shown):
+```{r showCleanData, echo=FALSE}
+head(df, n=nb.rows)
+```
