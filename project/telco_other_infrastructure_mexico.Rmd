@@ -2,7 +2,7 @@
 title: Correlation between fixed telecommunications infrastructure and
   basic infrastructure development
 author: "Guillermo Fernández Castellanos"
-date: "NBED DATE"
+date: "20 October 2014"
 output:
   html_document:
     theme: cerulean
@@ -55,9 +55,8 @@ df <- read.dbf("ITER_NALDBF10.dbf")
 df <- df[df$NOM_LOC == "Total del Municipio", ]
 
 # Change factor types to appropiate types (character or numeric)
-##### NBED REMOVE THOSE FACTORS WE DO NOT USE AT THE END
 as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
-df$NOM_MUN <- as.character(df$NOM_MUN)
+df$NOM_MUN <- as.character.factor(df$NOM_MUN)
 df$POBTOT <- as.numeric.factor(df$POBTOT)
 df$VIVPAR_HAB <- as.numeric.factor(df$VIVPAR_HAB)
 df$VPH_C_SERV <- as.numeric.factor(df$VPH_C_SERV)
@@ -77,9 +76,8 @@ df$telco <- cut(df$telco, breaks=seq(0, 1, by = 0.1),
 
 # Add an id to each municipio based on INEGI codes
 df$id <-  paste0(df$ENTIDAD, df$MUN)
-####### NBED BEFORE DELIVERING THE EXERCISE, MAKE SURE TO LEAVE ONLY THE COLUMNS WE WANT TO KEEP
 # Reorder and eliminate undeeded columns
-df <- df[, c("id", "infr", "telco", "NOM_MUN", "POBTOT", "VIVPAR_HAB", "VPH_C_SERV", "VPH_TELEF")]
+df <- df[, c("id", "infr", "telco")]
 
 # Remove row names
 row.names(df)<-NULL
@@ -96,12 +94,12 @@ table.df <- data.frame(as.data.frame(table(df$infr))[2],
                        row.names = names(table(df$telco)))
 names(table.df) <- c("Basic infrastructure", "Fixed line")
 library(knitr)
-kable(as.data.frame(t(table.df)), format="pandoc")
+kable(as.data.frame(t(table.df)))
 ```
 
 As the figure below left shows, both variables' probability distribution functions are unimodal and significantly skewed, left skewed for basic infrastructure and right skewed for telecommunications infrastructure. A preliminar analysis indicate a certain relationship between both variables: while there is no apparent linearity it appears clearly in the contingency table (presented graphically below right) that higher proportions of fixed line penetration among households are far more likely in municipios with a high proportion of households with basic infrastructure needs covered. Nonetheless, having a high penetration of basic infrastructure in a municipio does not insure a high adoption of fixed lines among households - fixed infrastructure has been traditionally installed after deployment of basic infrastructures
  
-```{r , echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.height=4, fig.width=10}
+```{r dataAnalysis, echo=FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.height=4, fig.width=10}
 table.df <- data.frame(names(table(df$telco)),
                        as.data.frame(table(df$infr))[2],
                        as.data.frame(table(df$telco))[2])
@@ -145,35 +143,89 @@ While the concept of mean and median does not make much sense in categorical var
 
 ### Inference:
 
-Insert inference section here...
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-library("MASS")
-fm <- loglm(~ infr + telco, xtabs(~ infr + telco, df))  # Fit Log-Linear Models by Iterative Proportional Scaling
-fm
-str(fm)
+The data is composed of categorical variables of 10 levels each, which will require the chi-square independence test to analyze any relationship between them. This method allows to compare two distributions with categorical variables with more than 2 levels, and evaluate the level of relationship between the two variables, although it does not provide information on causality - only correlation. The test looks at the combination of both variables in a contingency table and quantifies the deviations between the observed variables and the values they would have theoretically had if they were intependent.
+
+This is done by analyzing the distance of the number of observations of each combination of variables against the theoretical values they would have if the null hipotesis was true. The sum of the distances of each combination is used as an input for the chi-square probability distribution, which provides the p-value for the probability that both variables are independent.
+
+In this case, the hypothesis testing is very straightforward:
+
+* *H0 (nothing going on):* Basic infrastructure and telecommunication infrastructure are independent, and telco infrastructure do not vary by the level of development of basic infrastructure.
+* *HA (something going on):* Basic infrastructure and telecommunication infrastructure are dependent, and telco infrastructure do vary by the level of development of basic infrastructure.
+
+The table of proportions for the data set is as follows:
+```{r proportionsTable, echo=FALSE, message=FALSE, warning=FALSE}
+table.df <- table(df$infr, df$telco)
+names(dimnames(table.df)) <- c("Basic infrastructure", "Fixed line")
+round(table.df/length(df$telco), 2)
 ```
+
+The first step is to check the conditions for the use of the test are met.
+
+* *Independence:* Sampled observations are indeed independent
+    + Households were randomly selected within a specific area
+    + Sampling was done without replacement and represented less than 10% of population - 2.9 million households over a total of over 31 million
+    + Nonetheless, it could be argued that, because we are analyzing estados, we are actually using 100% of observations, and as thus it would not respect the independence condition.
+* *Sample size:* There are scenarios - even at the household level - that do not have the required minimum of 5 expected cases - there are less than 5 estados with fixed line penetration of *81-90%* or *91-100%*, as seen in the table below:
+
+```{r dataTable, echo=FALSE, message=FALSE, warning=FALSE}
+table.df
+```
+
+If we had any doubt, the *sample size* condition invalidates the use of the chi-square independence test. The solution is to use simulation methods:
+
+```{r inference, warning=FALSE}
+source("http://bit.ly/dasi_inference")
+inference(x = droplevels(df$telco), y = droplevels(df$infr),
+          est="proportion", type="ht",
+          method="simulation", alternative = 'greater',
+          sum_stats = FALSE, inf_plot = FALSE, eda_plot = FALSE)
+```
+
+We observe a p-value that tends to zero, which provides convincing evidence to reject the H0 hypothesis and conclude that basic infrastructure development and telecommunications infrastructure are associated.
+
+Having used the chi-square independence tests, and unlike other methods that allow for comparisons between hypothesis test and confidence intervals, there ar no other methods applicable that could be used to contrast our results.
 
 ### Conclusion:
 
-Insert conclusion here...
+The analysis shows that it is worth considering basic infrastructure and telecommunications infrastructure development together when developping public policies and infrastructure plans in Mexico, either by leveraging on basic infrastructure to deploy telecommunications infrastructure, or by deploying both simultaneously.
 
-Discuss that ideally we would have to do a survey on fixed infrastructure deployment, explain how to do it, how the sample size should be and the fact that bein only 2000 and something municipalities it would be far cheaper to do it than for localidades.
+It is nonetheless important to keep in mind the high level of uncertainty associated to our conclusions, due to the lack of precision introduced by the use of fixed line as proxy for the availability for telecommunications infrastructure.
+
+The ideal solution would be to add a new question for the next census - expected in 2015 - or force operators to provide more detailed information on their respective coverages. An alternative would be to financing a specific survey, which would require for a 5% margin of error the following sample size per estado:
+```{r sampleSize}
+ME <- 0.05
+p <- 0.5  # The most conservative ME happens with p = 50%
+sample.size <- ceiling(1.96^2 * p*(1 − p)/ME^2)
+sample.size
+```
+
+This amounts to a survey of size of at least `r format(sample.size*dim(df)[1], scientific = FALSE)` households, which would be impractical and expensive, an alternative being doing it at estado level, with a sample of size `r format(sample.size*32, scientific = FALSE)`, or significantly reducing the level of estados by grouping them based on population.
+
+Another interesing path for future research would be to consider the same relationship at a lower level of detail - localidades. This analysis would have to first tackle the problem of lack of information in localidades with very low population levels, likely by using approximations or considerding very low levels of infrastructure penetration.
+
+### References
+[Mexican 2010 census](http://www.censo2010.org.mx/), National Institute of Statistics and Geography of Mexico, [INEGI](http://www.inegi.org.mx/) - [download online](http://www3.inegi.org.mx/sistemas/biblioteca/detalle.aspx?c=27623&s=est&upc=702825002065&pf=pob&f=2&cl=0&tg=0).
+
+[Katz, R. L. (2009d). Estimating broadband demand and its economic impact in Latin America](www.acorn-redecom.org/program.html). Paper submitted to the ACORN REDECOM Conference 2009, Mexico City, September 5, 2009. 
+
+[Czernich, N., Falck, O., Kretschmer T., & Woessman, L. (2009, December). Broadband infrastructure and 
+economic growth (CESifo Working Paper No. 2861)](www.ifo.de/DocCIDL/cesifo1_wp2861.pdf)
+
+Koutroumpis, P. (2009). The Economic Impact of Broadband on Growth: A Simultaneous Approach. Telecommunications Policy, 33, 471-485. 
 
 ### Appendix 1: Overview of the database
 Find hereafter the commands executed to adapt the database to the study needs:
 ```{r cleanDataCommands, eval=FALSE}
-################################################################################
-## NBED REVIEW AT END OF PROJECT
-################################################################################
-
 library(foreign)
 df <- read.dbf("ITER_NALDBF10.dbf")
 
 # We are looking only for total Municipio lines
 df <- df[df$NOM_LOC == "Total del Municipio", ]
 
-# Change factor types to appropiate types
+# Change factor types to appropiate types (character or numeric)
 as.numeric.factor <- function(x) {as.numeric(levels(x))[x]}
+df$NOM_MUN <- as.character.factor(df$NOM_MUN)
+df$POBTOT <- as.numeric.factor(df$POBTOT)
 df$VIVPAR_HAB <- as.numeric.factor(df$VIVPAR_HAB)
 df$VPH_C_SERV <- as.numeric.factor(df$VPH_C_SERV)
 df$VPH_TELEF <- as.numeric.factor(df$VPH_TELEF)
@@ -199,7 +251,7 @@ df <- df[, c("id", "infr", "telco")]
 row.names(df)<-NULL
 ```
 
-This results in the following database (only `r nb.rows <- 20; nb.rows` first rows shown):
+This results in the following database (only `r nb.rows <- 40; nb.rows` first rows shown):
 ```{r showCleanData, echo=FALSE}
 head(df, n=nb.rows)
 ```
